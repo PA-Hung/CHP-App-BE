@@ -5,6 +5,7 @@ import * as xlsx from 'xlsx';
 import { InjectModel } from '@nestjs/mongoose';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { Accommodation, AccommodationDocument } from 'src/accommodation/schemas/accommodation.schema';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class ExcelService {
@@ -75,11 +76,17 @@ export class ExcelService {
     try {
       // Retrieve data from MongoDB
       const accommodations = await this.AccommodationModel.find().exec();
+      const formatDate = (date: Date | string): string => {
+        const parsedDate = typeof date === 'string' ? new Date(date) : date;
+        return dayjs(parsedDate).format('DD/MM/YYYY');
+      }
 
+      let stt = 1; // Biến đếm số thứ tự
       // Prepare worksheet data, handling dates appropriately
       const worksheetData = accommodations.map((accommodation) => ({
+        'STT': stt++,
         'Họ và tên (*)': accommodation.name,
-        'Ngày, tháng, năm sinh (*)': accommodation.birthday, // Convert Date to ISO 8601 string
+        'Ngày, tháng, năm sinh (*)': formatDate(accommodation.birthday),
         'Giới tính (*)': accommodation.gender,
         'CMND/ CCCD/ Số định danh (*)': accommodation.identification_number,
         'Số hộ chiếu (*)': accommodation.passport,
@@ -95,21 +102,17 @@ export class ExcelService {
         'Địa chỉ – Phường xã': accommodation.ward,
         'Địa chỉ – Số nhà': accommodation.address,
         'Loại cư trú (*)': accommodation.residential_status,
-        'Thời gian lưu trú (đến ngày) (*)': accommodation.arrival, // Convert Date to ISO 8601 string
-        'Thời gian lưu trú (đi ngày)': accommodation.departure ? accommodation.departure : '', // Convert Date to ISO 8601 string or empty if departure is null
+        'Thời gian lưu trú (đến ngày) (*)': formatDate(accommodation.arrival),
+        'Thời gian lưu trú (đi ngày)': accommodation.departure ? formatDate(accommodation.departure) : '',
         'Lý do lưu trú': accommodation.reason,
         'Số phòng/Mã căn hộ': accommodation.apartment,
         // Add other fields as needed
       }));
 
-      const ws = xlsx.utils.json_to_sheet(worksheetData);
-      const wb = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(wb, ws, 'Sheet 1');
-      const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
-      return buffer; //Assuming you have a filename set in the response object
+      return worksheetData; //Assuming you have a filename set in the response object
 
     } catch (error) {
-      return { success: false, error: 'Error exporting Excel file' };
+      return { success: false, error: 'Error exporting Excel file', details: error.message };
     }
   }
 
