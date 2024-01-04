@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
 import { ExcelService } from './excel.service';
 import { UpdateExcelDto } from './dto/update-excel.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -11,6 +11,11 @@ export class ExcelController {
   @UseInterceptors(FileInterceptor('fileExcel'))
   importExcel(@UploadedFile() file: Express.Multer.File) {
     return this.excelService.importExcel(file);
+  }
+
+  @Get('export')
+  exportExcel() {
+    return this.excelService.exportExcel();
   }
 
   @Get()
