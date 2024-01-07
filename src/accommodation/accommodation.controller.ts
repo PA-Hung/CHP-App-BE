@@ -28,9 +28,9 @@ export class AccommodationController {
     return this.accommodationService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAccommodationDto: UpdateAccommodationDto) {
-    return this.accommodationService.update(+id, updateAccommodationDto);
+  @Patch()
+  update(@Body() updateAccommodationDto: UpdateAccommodationDto, @ReqUser() userInfo: IUser) {
+    return this.accommodationService.update(updateAccommodationDto, userInfo);
   }
 
   @Delete(':id')

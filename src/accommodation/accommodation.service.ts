@@ -72,8 +72,18 @@ export class AccommodationService {
     return `This action returns a #${id} accommodation`;
   }
 
-  update(id: number, updateAccommodationDto: UpdateAccommodationDto) {
-    return `This action updates a #${id} accommodation`;
+  async update(updateAccommodationDto: UpdateAccommodationDto, userInfo: IUser) {
+    const updated = await this.accommodationModel.updateOne(
+      { _id: updateAccommodationDto._id },
+      {
+        ...updateAccommodationDto,
+        updatedBy: {
+          _id: userInfo._id,
+          phone: userInfo.phone
+        }
+      }
+    );
+    return updated
   }
 
   async remove(id: string, userAuthInfo: IUser) {
