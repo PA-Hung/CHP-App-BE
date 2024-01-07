@@ -10,7 +10,7 @@ export class Accommodation {
     @Prop()
     name: string
     @Prop()
-    birthday: string
+    birthday: Date
     @Prop()
     gender: string
     @Prop()
@@ -42,9 +42,9 @@ export class Accommodation {
     @Prop()
     residential_status: string
     @Prop()
-    arrival: string
+    arrival: Date
     @Prop()
-    departure: string
+    departure: Date
     @Prop()
     reason: string
     @Prop()

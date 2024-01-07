@@ -2,7 +2,7 @@ export class CreateAccommodationDto {
 
     name: string
 
-    birthday: string
+    birthday: Date
 
     gender: string
 
@@ -34,9 +34,9 @@ export class CreateAccommodationDto {
 
     residential_status: string
 
-    arrival: string
+    arrival: Date
 
-    departure: string
+    departure: Date
 
     reason: string
 

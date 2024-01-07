@@ -19,24 +19,23 @@ export class ExcelService {
 
   async importExcel(file: Express.Multer.File, userInfo: IUser) {
     try {
-      function convertToISO8601Date(inputDate: string): Date | null {
+      // chuyen string ngay thang khong dung chuẩn về đúng chuẩn ISO8601 và convert thanh kieu Date đưa vào db
+      const convertToISO8601Date = (inputDate: string): dayjs.Dayjs | null => {
         const [day, month, year] = inputDate.split('/');
         if (!(day && month)) {
           return null;
         }
-        const formattedDate = year ?
-          new Date(`${year}-${month}-${day}T00:00:00.000Z`) :
-          new Date(`${new Date().getFullYear()}-${month}-${day}T00:00:00.000Z`);
-        return formattedDate;
-      }
+        const formattedDate = year
+          ? dayjs(`${year}-${month}-${day}T00:00:00.000Z`)
+          : dayjs(`${new Date().getFullYear()}-${month}-${day}T00:00:00.000Z`);
+        return formattedDate.isValid() ? formattedDate : null;
+      };
 
       const workbook = xlsx.read(file.buffer, { type: 'buffer' });
       const sheetNames = workbook.SheetNames;
 
       for (const sheetName of sheetNames) {
-        //console.log('Processing Sheet:', sheetName);
         const sheet = workbook.Sheets[sheetName];
-        //console.log('Sheet Data:', sheet);
 
         const rawData = xlsx.utils.sheet_to_json(sheet, { header: 2 });
         rawData.shift();
@@ -68,9 +67,7 @@ export class ExcelService {
 
         // Process the 'mappedData' array as needed
         await this.AccommodationModel.create(mappedData);
-
       }
-
       return { success: true, message: 'Nhập file thành công !' };
     } catch (error) {
       return { success: false, error: 'Invalid Excel file' };
@@ -87,9 +84,10 @@ export class ExcelService {
         query = { userId: userIdToSearch };
       }
       const accommodations = await this.AccommodationModel.find(query).exec();
-      const formatDate = (date: Date | string): string => {
-        const parsedDate = typeof date === 'string' ? new Date(date) : date;
-        return dayjs(parsedDate).format('DD/MM/YYYY');
+
+      // chuyển định dạng ngày tháng năm chuẩn ISO8601 thành DD/MM/YYY
+      const formatDate = (date: Date) => {
+        return dayjs(date).format('DD/MM/YYYY');
       }
 
       let stt = 1; // Biến đếm số thứ tự

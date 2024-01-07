@@ -7,6 +7,7 @@ import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { IUser } from 'src/users/users.interface';
 import aqp from 'api-query-params';
 import mongoose, { Types } from 'mongoose';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class AccommodationService {
@@ -17,6 +18,23 @@ export class AccommodationService {
   ) { }
 
   async create(createAccommodationDto: CreateAccommodationDto, userAuthInfo: IUser) {
+    const formattedArrivalDate = dayjs(createAccommodationDto.arrival);
+
+    if (formattedArrivalDate.isBefore(dayjs(), 'day')) {
+      const checkCCCD = await this.accommodationModel.findOne({ identification_number: createAccommodationDto.identification_number })
+      const checkPassport = await this.accommodationModel.findOne({ passport: createAccommodationDto.passport })
+      const checkArrival = await this.accommodationModel.findOne({
+        arrival: {
+          $gte: formattedArrivalDate.startOf('day').toDate(),
+          $lt: formattedArrivalDate.endOf('day').toDate(),
+        },
+      })
+      if (checkArrival && (checkCCCD || checkPassport)) {
+        console.log('có check');
+        throw new BadRequestException(`Thông tin lưu trú của : ${createAccommodationDto.name} đã tồn tại !`);
+      }
+    }
+
     const resData = await this.accommodationModel.create({
       userId: userAuthInfo._id,
       ...createAccommodationDto,
