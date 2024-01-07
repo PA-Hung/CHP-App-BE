@@ -6,6 +6,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { Accommodation, AccommodationDocument } from 'src/accommodation/schemas/accommodation.schema';
 import dayjs from 'dayjs';
+import { IUser } from 'src/users/users.interface';
+import aqp from 'api-query-params';
 
 @Injectable()
 export class ExcelService {
@@ -15,14 +17,16 @@ export class ExcelService {
     private AccommodationModel: SoftDeleteModel<AccommodationDocument>,
   ) { }
 
-  async importExcel(file: Express.Multer.File) {
+  async importExcel(file: Express.Multer.File, userInfo: IUser) {
     try {
       function convertToISO8601Date(inputDate: string): Date | null {
         const [day, month, year] = inputDate.split('/');
         if (!(day && month)) {
           return null;
         }
-        const formattedDate = year ? new Date(`${year}-${month}-${day}T00:00:00.000Z`) : new Date(`${new Date().getFullYear()}-${month}-${day}T00:00:00.000Z`);
+        const formattedDate = year ?
+          new Date(`${year}-${month}-${day}T00:00:00.000Z`) :
+          new Date(`${new Date().getFullYear()}-${month}-${day}T00:00:00.000Z`);
         return formattedDate;
       }
 
@@ -38,6 +42,7 @@ export class ExcelService {
         rawData.shift();
 
         const mappedData = rawData.map((item) => ({
+          userId: userInfo._id,
           name: item['Họ và tên (*)'] || '',
           birthday: convertToISO8601Date(item['Ngày, tháng, năm sinh (*)']) || null,
           gender: item['Giới tính (*)'] || '',
@@ -72,10 +77,16 @@ export class ExcelService {
     }
   }
 
-  async exportExcel() {
+  async exportExcel(userInfo: IUser) {
     try {
       // Retrieve data from MongoDB
-      const accommodations = await this.AccommodationModel.find().exec();
+      const checkAdmin = userInfo.role
+      const userIdToSearch = checkAdmin !== 'ADMIN' ? userInfo._id : undefined;
+      let query = {};
+      if (userIdToSearch !== undefined) {
+        query = { userId: userIdToSearch };
+      }
+      const accommodations = await this.AccommodationModel.find(query).exec();
       const formatDate = (date: Date | string): string => {
         const parsedDate = typeof date === 'string' ? new Date(date) : date;
         return dayjs(parsedDate).format('DD/MM/YYYY');

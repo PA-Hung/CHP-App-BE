@@ -5,6 +5,8 @@ export type AccommodationDocument = HydratedDocument<Accommodation>;
 
 @Schema({ timestamps: true })
 export class Accommodation {
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+    userId: mongoose.Schema.Types.ObjectId;
     @Prop()
     name: string
     @Prop()

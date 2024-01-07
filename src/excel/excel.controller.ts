@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, Res, Query } from '@nestjs/common';
 import { ExcelService } from './excel.service';
 import { UpdateExcelDto } from './dto/update-excel.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ReqUser } from 'src/decorator/customize';
+import { IUser } from 'src/users/users.interface';
 
 @Controller('excel')
 export class ExcelController {
@@ -9,13 +11,13 @@ export class ExcelController {
 
   @Post('import')
   @UseInterceptors(FileInterceptor('fileExcel'))
-  importExcel(@UploadedFile() file: Express.Multer.File) {
-    return this.excelService.importExcel(file);
+  importExcel(@UploadedFile() file: Express.Multer.File, @ReqUser() userInfo: IUser) {
+    return this.excelService.importExcel(file, userInfo);
   }
 
   @Get('export')
-  exportExcel() {
-    return this.excelService.exportExcel();
+  exportExcel(@ReqUser() userInfo: IUser) {
+    return this.excelService.exportExcel(userInfo);
   }
 
   @Get()

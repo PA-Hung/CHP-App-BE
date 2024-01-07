@@ -6,7 +6,7 @@ import { Accommodation, AccommodationDocument } from './schemas/accommodation.sc
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { IUser } from 'src/users/users.interface';
 import aqp from 'api-query-params';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 @Injectable()
 export class AccommodationService {
@@ -18,6 +18,7 @@ export class AccommodationService {
 
   async create(createAccommodationDto: CreateAccommodationDto, userAuthInfo: IUser) {
     const resData = await this.accommodationModel.create({
+      userId: userAuthInfo._id,
       ...createAccommodationDto,
       createdBy: {
         _id: userAuthInfo._id,
@@ -29,6 +30,20 @@ export class AccommodationService {
 
   async findAll(currentPage: number, limit: number, queryString: string) {
     const { filter, projection, sort, population } = aqp(queryString);
+
+    // Kiểm tra xem có trường userId trong filter không
+    if (filter.userId) {
+      //console.log('filter.userId', filter.userId);
+
+      //Chuyển nó thành String và Xoá bỏ / ở đầu và /i ở cuối (nếu có)
+      filter.userId = String(filter.userId).replace(/^\/|\/i$/g, '');
+
+      // Chuyển đổi thành ObjectId nếu giá trị là một chuỗi ObjectId hợp lệ
+      if (Types.ObjectId.isValid(filter.userId)) {
+        filter.userId = new Types.ObjectId(filter.userId);
+      }
+    }
+
     delete filter.current
     delete filter.pageSize
     let offset = (+currentPage - 1) * (+limit);
