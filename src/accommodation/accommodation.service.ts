@@ -23,16 +23,18 @@ export class AccommodationService {
     const formattedDepartureDate = dayjs(createAccommodationDto.departure);
 
     if (formattedArrivalDate.isBefore(dayjs(), 'day')) {
-      const checkCCCD = await this.accommodationModel.findOne({ identification_number: createAccommodationDto.identification_number })
-      const checkPassport = await this.accommodationModel.findOne({ passport: createAccommodationDto.passport })
-      const checkArrival = await this.accommodationModel.findOne({
+      const checkExistingRecord = await this.accommodationModel.findOne({
+        $or: [
+          { identification_number: createAccommodationDto.identification_number },
+          { passport: createAccommodationDto.passport }
+        ],
         arrival: {
           $gte: formattedArrivalDate.startOf('day').toDate(),
           $lt: formattedArrivalDate.endOf('day').toDate(),
         },
-      })
-      if (checkArrival && (checkCCCD || checkPassport)) {
-        console.log('có check');
+      });
+
+      if (checkExistingRecord) {
         throw new BadRequestException(`Thông tin lưu trú của : ${createAccommodationDto.name} đã tồn tại !`);
       }
     }
@@ -106,8 +108,8 @@ export class AccommodationService {
     const formattedDepartureDate = dayjs(updateAccommodationDto.departure);
 
     if (formattedArrivalDate.isBefore(dayjs(), 'day')) {
-      const checkUpdate = await this.accommodationModel.findOne({
-        _id: updateAccommodationDto._id,
+      const checkExistingRecord = await this.accommodationModel.findOne({
+        _id: { $ne: updateAccommodationDto._id },
         $or: [
           { identification_number: updateAccommodationDto.identification_number },
           { passport: updateAccommodationDto.passport }
@@ -116,33 +118,31 @@ export class AccommodationService {
           $gte: formattedArrivalDate.startOf('day').toDate(),
           $lt: formattedArrivalDate.endOf('day').toDate(),
         },
-      })
+      });
 
-      if (checkUpdate) {
-        if (!formattedBirthDate.isBefore(dayjs(), 'day')) {
-          throw new BadRequestException(`Ngày sinh phải bé hơn ngày hiện tại !`);
-        }
-
-        if (formattedDepartureDate.isBefore(formattedArrivalDate)) {
-          throw new BadRequestException('Ngày khởi hành phải lớn hơn hoặc bằng ngày đến !');
-        }
-
-        const updated = await this.accommodationModel.updateOne(
-          { _id: updateAccommodationDto._id },
-          {
-            ...updateAccommodationDto,
-            updatedBy: {
-              _id: userInfo._id,
-              phone: userInfo.phone
-            }
-          }
-        );
-        return updated
-      }
-      else {
+      if (checkExistingRecord) {
         throw new BadRequestException(`Thông tin lưu trú của : ${updateAccommodationDto.name} đã tồn tại !`);
       }
     }
+
+    if (!formattedBirthDate.isBefore(dayjs(), 'day')) {
+      throw new BadRequestException(`Ngày sinh phải bé hơn ngày hiện tại !`);
+    }
+    if (formattedDepartureDate.isBefore(formattedArrivalDate)) {
+      throw new BadRequestException('Ngày khởi hành phải lớn hơn hoặc bằng ngày đến !');
+    }
+
+    const updated = await this.accommodationModel.updateOne(
+      { _id: updateAccommodationDto._id },
+      {
+        ...updateAccommodationDto,
+        updatedBy: {
+          _id: userInfo._id,
+          phone: userInfo.phone
+        }
+      }
+    );
+    return updated
   }
 
   async remove(id: string, userAuthInfo: IUser) {
